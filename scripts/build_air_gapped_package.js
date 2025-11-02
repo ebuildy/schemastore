@@ -128,7 +128,11 @@ async function buildAirGappedPackage(options = {}) {
     }
 
     let filename = null
-    if (entry.name && typeof entry.name === 'string' && entry.name.toLowerCase().endsWith('.json')) {
+    if (
+      entry.name &&
+      typeof entry.name === 'string' &&
+      entry.name.toLowerCase().endsWith('.json')
+    ) {
       filename = sanitizeName(entry.name)
     } else {
       filename = filenameFromUrl(url)
@@ -149,19 +153,29 @@ async function buildAirGappedPackage(options = {}) {
   /** @param {number} i */
   async function processIndex(i) {
     const entry = catalog.schemas[i]
-    if (!entry || typeof entry !== 'object') return { i, newEntry: entry, failed: false }
+    if (!entry || typeof entry !== 'object')
+      return { i, newEntry: entry, failed: false }
     const url = entry.url
-    if (!url || typeof url !== 'string') return { i, newEntry: entry, failed: false }
+    if (!url || typeof url !== 'string')
+      return { i, newEntry: entry, failed: false }
 
     const filename = filenames[i]
     const destPath = path.join(schemasDir, filename)
     try {
-      const localRepoSchema = path.join(__dirname, '../src/schemas/json', filename)
+      const localRepoSchema = path.join(
+        __dirname,
+        '../src/schemas/json',
+        filename,
+      )
       if (await exists(localRepoSchema)) {
-        console.info(`Copying local schema for ${url}: ${localRepoSchema} -> ${destPath}`)
+        console.info(
+          `Copying local schema for ${url}: ${localRepoSchema} -> ${destPath}`,
+        )
         await fs.copyFile(localRepoSchema, destPath)
       } else {
-        console.info(`Downloading ${i + 1}/${catalog.schemas.length}: ${url} -> ${destPath}`)
+        console.info(
+          `Downloading ${i + 1}/${catalog.schemas.length}: ${url} -> ${destPath}`,
+        )
         await downloadToFile(url, destPath)
       }
       const newEntry = { ...entry, url: `./${schemasSub}/${filename}` }
@@ -215,16 +229,18 @@ async function buildAirGappedPackage(options = {}) {
     console.error(`Completed with ${failures} download failures.`)
     process.exitCode = 1
   } else {
-    console.info(`Build complete. Wrote ${outCatalogPath} and ${newSchemas.length} schemas to ${schemasDir}`)
+    console.info(
+      `Build complete. Wrote ${outCatalogPath} and ${newSchemas.length} schemas to ${schemasDir}`,
+    )
   }
 }
 
 // Run as script
-  if (
-    import.meta.url === `file://${process.argv[1]}` ||
-    process.argv[1].endsWith('build_air_gapped_package.ts') ||
-    process.argv[1].endsWith('build_air_gapped_package.js')
-  ) {
+if (
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1].endsWith('build_air_gapped_package.ts') ||
+  process.argv[1].endsWith('build_air_gapped_package.js')
+) {
   const args = process.argv.slice(2)
   /** @type {{catalog?:string,out?:string,schemasDir?:string}} */
   const opts = {}

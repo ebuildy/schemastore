@@ -22,8 +22,8 @@
     "typecheck": "tsc --project ./jsconfig.json",
     "eslint": "eslint ./cli.js",
     "eslint:fix": "eslint --fix ./cli.js",
-    "build": "echo \"WARNING: Please use 'node ./cli.js' instead of 'npm run'. This method for execution will be removed.\" && npm run eslint && node ./cli.js check && ./scripts/dirty_repository_check.sh"
-    ,"build:air-gapped": "node --input-type=module scripts/build_air_gapped_package.ts"
+    "build": "echo \"WARNING: Please use 'node ./cli.js' instead of 'npm run'. This method for execution will be removed.\" && npm run eslint && node ./cli.js check && ./scripts/dirty_repository_check.sh",
+    "build:air-gapped": "node --input-type=module scripts/build_air_gapped_package.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.26.0",
