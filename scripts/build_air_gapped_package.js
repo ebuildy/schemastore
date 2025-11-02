@@ -53,7 +53,6 @@ async function writeJsonFile(file, data) {
   await fs.writeFile(file, JSON.stringify(data, null, 2) + '\n', 'utf-8')
 }
 
-
 /**
  * Slugify a string for filenames: lowercase, replace non-alphanumerics with hyphens, collapse repeats, trim, and append .json
  * @param {string} name
@@ -81,16 +80,53 @@ function filenameFromUrl(urlStr) {
   }
 }
 
+/**
+ * Sleep for a given number of milliseconds
+ * @param {number} ms
+ */
+async function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+/**
+ * Download a file with exponential backoff retry
+ * @param {string} url The URL to download from
+ * @param {number} attempt Current attempt number (1-based)
+ * @param {number} maxAttempts Maximum number of attempts
+ * @param {number} baseDelay Base delay in milliseconds
+ */
+async function downloadWithRetry(
+  url,
+  attempt = 1,
+  maxAttempts = 4,
+  baseDelay = 1000,
+) {
+  try {
+    const res = await fetch(url)
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status} ${res.statusText}`)
+    }
+    return await res.arrayBuffer()
+  } catch (err) {
+    if (attempt >= maxAttempts) {
+      // @ts-ignore
+      throw new Error(`Failed after ${maxAttempts} attempts: ${err.message}`)
+    }
+    const delay = baseDelay * Math.pow(2, attempt - 1) // exponential backoff
+    console.warn(
+      // @ts-ignore
+      `Attempt ${attempt} failed for ${url}, retrying in ${delay}ms: ${err.message}`,
+    )
+    await sleep(delay)
+    return downloadWithRetry(url, attempt + 1, maxAttempts, baseDelay)
+  }
+}
+
 /** @param {string} url
  *  @param {string} dest
  */
 async function downloadToFile(url, dest) {
-  // Use global fetch (Node 18+). If running in older environments, ensure a fetch polyfill is present.
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status} ${res.statusText}`)
-  }
-  const buf = await res.arrayBuffer()
+  const buf = await downloadWithRetry(url)
   await fs.writeFile(dest, Buffer.from(buf))
 }
 
