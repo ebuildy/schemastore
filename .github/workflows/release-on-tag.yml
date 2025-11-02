@@ -1,4 +1,4 @@
-name: Release on Tag
+name: Release on Tag (build + attach air-gapped package)
 
 on:
   push:
@@ -6,22 +6,47 @@ on:
       - 'v*'
 
 jobs:
-  create_release:
+  build_and_release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Node (for any node scripts)
+      - name: Set up Node (for scripts)
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
-      - name: Make release script executable
-        run: chmod +x ./release.sh
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Create release
+      - name: Run air-gapped build
+        run: |
+          node scripts/build_air_gapped_package.js --out build --schemas-dir schemas
+
+      - name: Zip build directory
+        run: |
+          # create a deterministic filename for the build zip
+          ZIP_NAME="airgap-package-${GITHUB_REF_NAME}.zip"
+          zip -r "$ZIP_NAME" build
+          ls -lh "$ZIP_NAME"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          ./release.sh --notes "Release triggered by GitHub Actions for tag $GITHUB_REF_NAME" --name "$GITHUB_REF_NAME"
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: ${{ github.ref_name }}
+          body: "Release triggered by GitHub Actions for tag ${{ github.ref_name }}"
+
+      - name: Upload build zip to Release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: airgap-package-${GITHUB_REF_NAME}.zip
+          asset_name: airgap-package-${GITHUB_REF_NAME}.zip
+          asset_content_type: application/zip

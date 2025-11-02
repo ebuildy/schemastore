@@ -10,6 +10,10 @@ The repository is a universal JSON schema store, where schemas for popular JSON 
 
 Contributions are more than welcome! Read [CONTRIBUTING.md](./CONTRIBUTING.md) for more information.
 
+## CI / Releases
+
+We use GitHub Actions to automate releases and produce build artifacts. Pushing a tag (for example `v1.2.3`) triggers a workflow that runs the air-gapped build (which collects JSON schemas into a self-contained `build/` directory), creates a zip named like `build-v1.2.3.zip`, and attaches that zip to the GitHub Release for the tag. There is also a manual workflow available in the Actions UI if you need to run the build independently.
+
 ## Help us out
 
 Keeping Schemastore.org running smoothly requires time, effort, and resources. While it’s still volunteer-driven, the infrastructure and maintenance costs have grown alongside its popularity.
