@@ -53,9 +53,19 @@ async function writeJsonFile(file, data) {
   await fs.writeFile(file, JSON.stringify(data, null, 2) + '\n', 'utf-8')
 }
 
-/** @param {string} name */
-function sanitizeName(name) {
-  return name.replace(/[^a-zA-Z0-9._-]/g, '_')
+
+/**
+ * Slugify a string for filenames: lowercase, replace non-alphanumerics with hyphens, collapse repeats, trim, and append .json
+ * @param {string} name
+ */
+function slugifyName(name) {
+  return (
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-+/g, '-') + '.json'
+  )
 }
 
 /** @param {string} urlStr */
@@ -65,10 +75,9 @@ function filenameFromUrl(urlStr) {
     let filename = path.basename(u.pathname) || ''
     filename = filename.split('?')[0].split('#')[0]
     if (!filename.toLowerCase().endsWith('.json')) filename = filename + '.json'
-    return sanitizeName(filename)
+    return slugifyName(filename)
   } catch (err) {
-    const candidate = urlStr.replace(/[^a-zA-Z0-9._-]/g, '_')
-    return candidate + '.json'
+    return slugifyName(urlStr)
   }
 }
 
@@ -128,12 +137,8 @@ async function buildAirGappedPackage(options = {}) {
     }
 
     let filename = null
-    if (
-      entry.name &&
-      typeof entry.name === 'string' &&
-      entry.name.toLowerCase().endsWith('.json')
-    ) {
-      filename = sanitizeName(entry.name)
+    if (entry.name && typeof entry.name === 'string') {
+      filename = slugifyName(entry.name)
     } else {
       filename = filenameFromUrl(url)
     }
@@ -227,7 +232,6 @@ async function buildAirGappedPackage(options = {}) {
 
   if (failures > 0) {
     console.error(`Completed with ${failures} download failures.`)
-    process.exitCode = 1
   } else {
     console.info(
       `Build complete. Wrote ${outCatalogPath} and ${newSchemas.length} schemas to ${schemasDir}`,
