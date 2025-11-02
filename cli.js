@@ -2144,12 +2144,15 @@ EXAMPLES:
     try {
       console.info('Building air-gapped package from catalog.json...')
       // Use Node 18+ to run the TypeScript script (uses global fetch)
-  const args = ['--input-type=module', 'scripts/build_air_gapped_package.ts']
-  if (argv['catalog']) args.push('--catalog', String(argv['catalog']))
-  if (argv['out']) args.push('--out', String(argv['out']))
-  // support both --schemas-dir and --schemasDir
-  const schemasDir = argv['schemas-dir'] || argv['schemasDir']
-  if (schemasDir) args.push('--schemas-dir', String(schemasDir))
+      const args = [
+        '--input-type=module',
+        'scripts/build_air_gapped_package.ts',
+      ]
+      if (argv['catalog']) args.push('--catalog', String(argv['catalog']))
+      if (argv['out']) args.push('--out', String(argv['out']))
+      // support both --schemas-dir and --schemasDir
+      const schemasDir = argv['schemas-dir'] || argv['schemasDir']
+      if (schemasDir) args.push('--schemas-dir', String(schemasDir))
 
       const { stdout, stderr } = await execFileAsync('node', args)
       if (stdout) console.log(stdout)
@@ -2194,7 +2197,7 @@ EXAMPLES:
     maintenance: taskMaintenance,
     'build-website': taskBuildWebsite,
     'build-xregistry': taskBuildXRegistry,
-  'build-air-gapped': taskBuildAirGappedPackage,
+    'build-air-gapped': taskBuildAirGappedPackage,
     build: taskCheck, // Undocumented alias.
   }
   const taskOrFn = argv._[0]
