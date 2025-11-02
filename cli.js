@@ -89,10 +89,17 @@ const SchemaDialects = [
   { draftVersion: 'draft-03', url: 'http://json-schema.org/draft-03/schema#', isActive: false, isTooHigh: false },
 ]
 
-/** @type {{ _: string[], fix?: boolean, help?: boolean, SchemaName?: string, 'schema-name'?: string, 'unstable-check-with'?: string, 'build-xregistry'?: boolean, 'verify-xregistry'?: boolean }} */
+/** @type {{ _: string[], fix?: boolean, help?: boolean, SchemaName?: string, 'schema-name'?: string, 'unstable-check-with'?: string, 'build-xregistry'?: boolean, 'verify-xregistry'?: boolean, catalog?: string, out?: string, 'schemas-dir'?: string, schemasDir?: string }} */
 const argv = /** @type {any} */ (
   minimist(process.argv.slice(2), {
-    string: ['SchemaName', 'schema-name', 'unstable-check-with'],
+    string: [
+      'SchemaName',
+      'schema-name',
+      'unstable-check-with',
+      'out',
+      'schemas-dir',
+      'catalog',
+    ],
     boolean: ['help', 'build-xregistry', 'verify-xregistry'],
   })
 )
@@ -2050,7 +2057,7 @@ async function printSimpleStatistics() {
 
 {
   const helpMenu = `USAGE:
-  node ./cli.js [--help] [--schema-name=<schema>] <taskName|functionName>
+  node ./cli.js [--help] [--schema-name=<schema>] [--catalog=path] [--out=dir] [--schemas-dir=name] <taskName|functionName>
 
 TASKS:
   new-schema: Create a new JSON schema
@@ -2060,12 +2067,19 @@ TASKS:
   check-remote: Run all build checks for remote schemas
   maintenance: Run maintenance checks
   build-xregistry: Build the xRegistry from the catalog.json
+  build-air-gapped: Build an air-gapped package (download schemas & local catalog)
+
+OPTIONS:
+  --catalog=<path>      Path to the source catalog.json (default: ./src/api/json/catalog.json)
+  --out=<dir>           Output directory for the build (default: ./build)
+  --schemas-dir=<name>  Subdirectory under output to store schemas (default: schemas)
 
 EXAMPLES:
   node ./cli.js check
   node ./cli.js check --fix
   node ./cli.js check --schema-name=schema-catalog.json
   node ./cli.js check-strict --schema-name=schema-catalog.json
+  node ./cli.js build-air-gapped --out=build --schemas-dir=schemas
 `
 
   if (!argv._[0]) {
@@ -2124,10 +2138,47 @@ EXAMPLES:
   }
 
   /**
+   * Executes the air-gapped package build process
+   */
+  async function buildAirGappedPackage() {
+    try {
+      console.info('Building air-gapped package from catalog.json...')
+      // Use Node 18+ to run the TypeScript script (uses global fetch)
+  const args = ['--input-type=module', 'scripts/build_air_gapped_package.ts']
+  if (argv['catalog']) args.push('--catalog', String(argv['catalog']))
+  if (argv['out']) args.push('--out', String(argv['out']))
+  // support both --schemas-dir and --schemasDir
+  const schemasDir = argv['schemas-dir'] || argv['schemasDir']
+  if (schemasDir) args.push('--schemas-dir', String(schemasDir))
+
+      const { stdout, stderr } = await execFileAsync('node', args)
+      if (stdout) console.log(stdout)
+      if (stderr) console.error(stderr)
+
+      return true
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error('Error executing air-gapped build:', error.message)
+        if ('stdout' in error) console.log(error.stdout)
+        if ('stderr' in error) console.error(error.stderr)
+      } else {
+        console.error('Unknown error occurred during air-gapped build:', error)
+      }
+      return false
+    }
+  }
+
+  /**
    * Task to build the xRegistry
    */
   async function taskBuildXRegistry() {
     if (!(await buildXRegistry())) {
+      process.exit(1)
+    }
+  }
+
+  async function taskBuildAirGappedPackage() {
+    if (!(await buildAirGappedPackage())) {
       process.exit(1)
     }
   }
@@ -2143,6 +2194,7 @@ EXAMPLES:
     maintenance: taskMaintenance,
     'build-website': taskBuildWebsite,
     'build-xregistry': taskBuildXRegistry,
+  'build-air-gapped': taskBuildAirGappedPackage,
     build: taskCheck, // Undocumented alias.
   }
   const taskOrFn = argv._[0]

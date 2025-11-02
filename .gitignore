@@ -145,3 +145,4 @@ App_Data/*.ldf
 
 # Lockfiles from tools other than npm
 pnpm-lock.yaml
+build

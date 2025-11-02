@@ -1,0 +1,27 @@
+name: Release on Tag
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node (for any node scripts)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Make release script executable
+        run: chmod +x ./release.sh
+
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./release.sh --notes "Release triggered by GitHub Actions for tag $GITHUB_REF_NAME" --name "$GITHUB_REF_NAME"

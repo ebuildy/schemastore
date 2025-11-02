@@ -1,0 +1,30 @@
+name: Build Air-Gapped Package on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run air-gapped build
+        run: |
+          node --input-type=module scripts/build_air_gapped_package.js --out build --schemas-dir schemas
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: air-gapped-package
+          path: build
